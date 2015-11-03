@@ -13,6 +13,7 @@ public class TCPsender {
 	private ServerSocket ackSocket;
 	private InetAddress receiverAddress;
 	private long timeout;
+	private int sequenceRange;
 	private static int totalBytesSent;
 	private static int totalSegmentsSent;
 	private static int retransmissions;
@@ -55,6 +56,7 @@ public class TCPsender {
 		this.sendFileName = null;
 		this.logFileName = null;
 		this.windowSize = 1;
+		this.sequenceRange = 2;
 		this.sendSocket = null;
 		this.ackSocket = null;
 		this.receiverAddress = null;
@@ -67,6 +69,7 @@ public class TCPsender {
 		this.setSendFileName(args[0]);
 		this.setLogFileName(args[4]);
 		if (args.length == 6) this.setWindowSize(Integer.parseInt(args[5]));
+		this.sequenceRange = this.windowSize * 2;
 		this.setSendSocket();
 		this.setAckSocket(this.getAckPort());
 		this.setReceiverAddress(InetAddress.getByName(args[1]));
@@ -74,7 +77,7 @@ public class TCPsender {
 	}
 
 	private static void setUpCounters() {
-		retranmissions = 0;
+		retransmissions = 0;
         totalSegmentsSent = 0;
         totalBytesSent = 0;
 	}
@@ -98,6 +101,10 @@ public class TCPsender {
 
 	public void setWindowSize(int windowSize) {
 		this.windowSize = windowSize;
+	}
+
+	public void setSequenceRange(int sequenceRange) {
+		this.sequenceRange = sequenceRange;
 	}
 
 	public void setSendSocket() throws SocketException {
@@ -135,6 +142,10 @@ public class TCPsender {
 
 	public int getWindowSize() {
 		return this.windowSize;
+	}
+
+	public int getSequenceRange() {
+		return this.sequenceRange;
 	}
 
 	public DatagramSocket getSendSocket() {
