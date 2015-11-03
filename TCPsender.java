@@ -1,22 +1,35 @@
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.nio.ByteBuffer;
+import java.util.Date;
 
 public class TCPsender {
-	private ArrayList<byte[]> datagrams;
+	private static ArrayList<byte[]> datagrams;
 	private short ackPort;
 	private short receiverPort;
 	private String sendFileName;
 	private String logFileName;
-	private int windowSize;
-	private DatagramSocket sendSocket;
+	private static int windowSize;
+	private static DatagramSocket sendSocket;
 	private ServerSocket ackSocket;
 	private InetAddress receiverAddress;
-	private long timeout;
-	private int sequenceRange;
+	private static long timeout;
+	private static long estimatedRTT;
+	private static int sequenceRange;
 	private static int totalBytesSent;
 	private static int totalSegmentsSent;
 	private static int retransmissions;
+	private static LogWriter writer;
+
+	private static int sendBase;
+	private static int nextSequence;
+	private static boolean baseACK;
+
+	private final static int SEQ_NUM_INDEX = 4;
+    private final static int ACK_NUM_INDEX = 8;
+    private final static int FLAG_INDEX = 13;
+    private final static int INT_BYTE_SIZE = 4;
 
 	public static void main(String[] args) {
 		if (args.length != 5 && args.length != 6)
@@ -30,10 +43,58 @@ public class TCPsender {
                 		 + "<window_size> default 1");
 		System.exit(1);
 	}
+
+	public static class GBNProtocol extends Thread {
+		private static long startTime;
+		private static long currTime;
+		private TCPsender sender;
+
+		public GBNProtocol(TCPsender sender) {
+			this.startTime = 0;
+			this.currTime = 0;
+			this.sender = sender;
+		}
+
+		@Override
+		public void run() {
+			while (sendBase < datagrams.size()) {
+				startTime = System.currentTimeMillis();
+				baseACK = false;
+
+				while (nextSequence < sendBase + windowSize && nextSequence < datagrams.size()) {
+					byte[] datagram = datagrams.get(nextSequence);
+					DatagramPacket packet = new DatagramPacket(datagram, datagram.length, 
+						sender.getReceiverAddress(), sender.getReceiverPort());
+					// send packet
+					try {
+						sender.sendPacket(packet);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					totalBytesSent += datagram.length;
+
+					// Write the log file
+					sender.writeSentMessage(datagram, writer);
+
+					nextSequence++;
+				}
+
+				// Retransmission if timer expires
+				while (sendBase < datagrams.size() && !baseACK) {
+					currTime = System.currentTimeMillis();
+					if (currTime - startTime >= timeout) {
+						retransmissions += nextSequence - sendBase;
+						nextSequence = sendBase;
+						break;
+					}
+				}
+			}
+		}
+	}
 	
 	private static void runSender(String[] args) {
 		TCPsender sender = new TCPsender();
-		LogWriter writer = new LogWriter();
+		writer = new LogWriter();
 		try {
 			sender.setUp(args);
 			setUpCounters();
@@ -43,10 +104,11 @@ public class TCPsender {
 			// Setup the log writer
 			writer.setUp(sender.getLogFileName());
 			// Generate all the datagrams
-			sender.datagrams = datagramGenerator.generateDatagram(sender.getSendPort(), sender.getReceiverPort(),
+			datagrams = datagramGenerator.generateDatagram(sender.getSendPort(), sender.getReceiverPort(),
 				sender.getSequenceRange(), sender.getSendFileName());
 
 			
+
 
 		} catch (UnknownHostException e) {
             e.printStackTrace();
@@ -56,6 +118,24 @@ public class TCPsender {
 
         System.exit(1);
 	}
+
+	private int extractIntFromHeader(byte[] header, int index) {
+        byte[] temp = new byte[4];
+        System.arraycopy(header, index, temp, 0, INT_BYTE_SIZE);
+        int value = ByteBuffer.wrap(temp).getInt();
+        return value;
+    }
+
+	private void writeSentMessage(byte[] segment, LogWriter writer) {
+        int seqNumber = this.extractIntFromHeader(segment, SEQ_NUM_INDEX);
+        int ackNumber = this.extractIntFromHeader(segment, ACK_NUM_INDEX);
+        String senderAddress = this.getSendSocket().getLocalSocketAddress()
+                .toString();
+        String receiverAddress = this.getReceiverAddress().toString() + ":"
+                + this.getReceiverPort();
+        writer.writeToLog(false, senderAddress, receiverAddress.substring(1),
+                seqNumber, ackNumber, segment[FLAG_INDEX], this.estimatedRTT, "Sent");
+    }
 	
 	public TCPsender() {
 		this.ackPort = 0;
@@ -68,6 +148,11 @@ public class TCPsender {
 		this.ackSocket = null;
 		this.receiverAddress = null;
 		this.timeout = 0;
+		this.estimatedRTT = 0;
+
+		this.sendBase = 0;
+		this.nextSequence = 0;
+		this.baseACK = false;
 	}
 
 	private void setUp(String[] args) throws UnknownHostException, IOException {
@@ -81,6 +166,7 @@ public class TCPsender {
 		this.setAckSocket(this.getAckPort());
 		this.setReceiverAddress(InetAddress.getByName(args[1]));
 		this.setTimeOut(1000);
+		this.estimatedRTT = 1000;
 	}
 
 	private static void setUpCounters() {
@@ -88,6 +174,11 @@ public class TCPsender {
         totalSegmentsSent = 0;
         totalBytesSent = 0;
 	}
+
+	private void sendPacket(DatagramPacket packet) throws IOException {
+        this.getSendSocket().send(packet);
+        totalSegmentsSent++;
+    }
 
 	// Setters
 	public void setAckPort(short ackPort) {
