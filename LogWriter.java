@@ -24,7 +24,7 @@ public class LogWriter {
     }
 
     public void writeToLog(boolean isSender, String source, String destination,
-            int seqNum, int ackNum, byte flag, long estimateRTT, String type) {
+            int seqNum, int ackNum, byte flag, long estimatedRTT, String type) {
         Date date = new Date();
         SimpleDateFormat dateFormat = setUpDateFormat();
 
@@ -41,7 +41,7 @@ public class LogWriter {
             this.fileWriter.println(prepareMessage(type,
                     dateFormat.format(date), source, destination, seqNum,
                     ackNum, ack, fin)
-                    + ", Estimated RTT: " + estimateRT + " ms");
+                    + ", Estimated RTT: " + estimatedRTT + " ms");
         } else {
             this.fileWriter.println(prepareMessage(type,
                     dateFormat.format(date), source, destination, seqNum,
