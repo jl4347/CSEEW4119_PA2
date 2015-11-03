@@ -5,7 +5,7 @@ import java.util.ArrayList;
 public class TCPsender {
 	private ArrayList<byte[]> datagrams;
 	private short ackPort;
-	private short sendPort;
+	private short receiverPort;
 	private String sendFileName;
 	private String logFileName;
 	private int windowSize;
@@ -40,6 +40,13 @@ public class TCPsender {
 
 			// Instantiate the datagram generator
 			DatagramGenerator datagramGenerator = new DatagramGenerator();
+			// Setup the log writer
+			writer.setUp(sender.getLogFileName());
+			// Generate all the datagrams
+			sender.datagrams = datagramGenerator.generateDatagram(sender.getSendPort(), sender.getReceiverPort(),
+				sender.getSequenceRange(), sender.getSendFileName());
+
+			
 
 		} catch (UnknownHostException e) {
             e.printStackTrace();
@@ -52,7 +59,7 @@ public class TCPsender {
 	
 	public TCPsender() {
 		this.ackPort = 0;
-		this.sendPort = 0;
+		this.receiverPort = 0;
 		this.sendFileName = null;
 		this.logFileName = null;
 		this.windowSize = 1;
@@ -65,7 +72,7 @@ public class TCPsender {
 
 	private void setUp(String[] args) throws UnknownHostException, IOException {
 		this.setAckPort(Short.parseShort(args[3]));
-		this.setSendPort(Short.parseShort(args[2]));
+		this.setReceiverPort(Short.parseShort(args[2]));
 		this.setSendFileName(args[0]);
 		this.setLogFileName(args[4]);
 		if (args.length == 6) this.setWindowSize(Integer.parseInt(args[5]));
@@ -87,8 +94,8 @@ public class TCPsender {
 		this.ackPort = ackPort;
 	}
 
-	public void setSendPort(short sendPort) {
-		this.sendPort = sendPort;
+	public void setReceiverPort(short receiverPort) {
+		this.receiverPort = receiverPort;
 	}
 
 	public void setSendFileName(String sendFileName) {
@@ -128,8 +135,8 @@ public class TCPsender {
 		return this.ackPort;
 	}
 
-	public short getSendPort() {
-		return this.sendPort;
+	public short getReceiverPort() {
+		return this.receiverPort;
 	}
 
 	public String getSendFileName() {
@@ -159,6 +166,12 @@ public class TCPsender {
 	public InetAddress getReceiverAddress() {
 		return this.receiverAddress;
 	}
+
+	public short getSendPort() {
+        Integer sendPort = this.getSendSocket().getLocalPort();
+        short shortNumber = sendPort.shortValue();
+        return shortNumber;
+    }
 
 	public long getTimeOut() {
 		return this.timeout;
