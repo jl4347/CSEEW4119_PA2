@@ -111,19 +111,36 @@ public class TCPsender {
 			GBNProtocol sendingThread = new GBNProtocol(sender);
 			sendingThread.start();
 
-			Socket listeningSocket = null;
+			Socket listeningSocket = sender.getAckSocket().accept();
+			BufferedReader reader = sender.createSocketInput(listeningSocket);
 			String response = "";
-			
-
+			while (sendBase < datagrams.size()) {
+				response = reader.readLine().trim();
+				if (responseHasCorrectAck(response, sendBase)) {
+					sendBase++;
+					sender.writeReceivedMessage(listeningSocket, response, writer);
+				}
+			}
+			listeningSocket.close();
+			sender.closeAckSocket();
 
 		} catch (UnknownHostException e) {
             e.printStackTrace();
         } catch (IOException e) {
         	e.printStackTrace();
         }
-
+        printStatistics();
+        sender.cleanUpIO(writer, sender);
         System.exit(1);
 	}
+
+	private BufferedReader createSocketInput(Socket socket) throws IOException {
+        return new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    }
+
+    private static boolean responseHasCorrectAck(String response, int sendBase) {
+        return response.contains("ACK " + (sendBase % sequenceRange)) ? true : false;
+    }
 
 	private int extractIntFromHeader(byte[] header, int index) {
         byte[] temp = new byte[4];
@@ -141,6 +158,37 @@ public class TCPsender {
                 + this.getReceiverPort();
         writer.writeToLog(false, senderAddress, receiverAddress.substring(1),
                 seqNumber, ackNumber, segment[FLAG_INDEX], this.estimatedRTT, "Sent");
+    }
+
+    private void writeReceivedMessage(Socket socket, String response, LogWriter writer) {
+        String ackSocketSource = socket.getInetAddress().toString().substring(1)
+                + ":" + socket.getPort();
+        String ackSocketDest = this.getAckSocket().getLocalSocketAddress().toString();
+        String seqNum = response.substring(0, response.indexOf("ACK")).trim();
+        int seq = Integer.parseInt(seqNum.substring(seqNum.indexOf("Q") + 1).trim());
+        int ack1 = Integer.parseInt(response.substring(
+                response.indexOf("K") + 1, response.indexOf("F")).trim());
+        Integer flagValue = Integer.parseInt(response.substring(
+                response.indexOf("G") + 1).trim());
+        byte flag = flagValue.byteValue();
+        writer.writeToLog(true, ackSocketSource, ackSocketDest, seq, ack1,
+                flag, estimatedRTT, "Received");
+    }
+
+    private void closeAckSocket() throws IOException {
+        this.getAckSocket().close();
+    }
+
+    private static void cleanUpIO(LogWriter writer, TCPsender sender) {
+        writer.close();
+        sender.getSendSocket().close();
+    }
+
+    private static void printStatistics() {
+        System.out.println("Delivery Completed Successfully");
+        System.out.println("Total bytes sent = " + totalBytesSent);
+        System.out.println("Segment sent = " + totalSegmentsSent);
+        System.out.println("Segments retransmitted = " + retransmissions);
     }
 	
 	public TCPsender() {
