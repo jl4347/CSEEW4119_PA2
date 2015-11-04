@@ -82,8 +82,6 @@ public class DatagramGenerator {
             	header[13] = ackFinFlag;
            	else header[13] = ackFlag;
 
-           	setTCPheader(header, source, destination, seqNumber, ackNumber, windowSize,
-           				 this.segments.get(i));
            	this.headers.add(header);
            	this.seqNum = (this.seqNum + 1) % this.sequenceRange;
            	this.ackNum = (this.ackNum + 1) % this.sequenceRange;
@@ -119,28 +117,37 @@ public class DatagramGenerator {
         for (int i = 0; i < this.headers.size(); i++) {
             byte[] header = this.headers.get(i);
             byte[] data = this.segments.get(i);
-            byte[] tcpTemp = new byte[header.length + data.length];
+            byte[] tcpMessage = new byte[header.length + data.length];
             System.arraycopy(header, 0, tcpTemp, 0, header.length);
             System.arraycopy(data, 0, tcpTemp, header.length, data.length);
-            this.datagrams.add(tcpTemp);
+
+            calculateCheckSum(tcpMessage);
+            this.datagrams.add(tcpMessage);
         }
     }
 
-    private void calculateCheckSum(byte[] header, byte[] source, byte[] destination, 
-    	byte[] windowSize, byte[] segment) {
-     	short segmentSize = new Integer(segment.length + HEADER_BYTE_SIZE).shortValue();
-        short sourcePort = convertByteArrayToShort(source, ByteOrder.BIG_ENDIAN);
-        short destinationPort = convertByteArrayToShort(destination, ByteOrder.BIG_ENDIAN);
+    private void calculateCheckSum(byte[] message) {
+     	byte[] sourceNumber = new byte[SHORT_BYTE_SIZE];
+        byte[] destNumber = new byte[SHORT_BYTE_SIZE];
+        byte[] windowSize = new byte[SHORT_BYTE_SIZE];
+       	
+        System.arraycopy(message, 0, sourceNumber, 0, SHORT_BYTE_SIZE);
+        System.arraycopy(message, 2, destNumber, 0, SHORT_BYTE_SIZE);
+        System.arraycopy(message, 14, windowSize, 0, SHORT_BYTE_SIZE);
+        
+        short segmentSize = new Integer(message.length).shortValue();
+        short sourcePort = convertByteArrayToShort(sourceNumber, ByteOrder.BIG_ENDIAN);
+        short destPort = convertByteArrayToShort(destNumber, ByteOrder.BIG_ENDIAN);
         short windowNum = convertByteArrayToShort(windowSize, ByteOrder.BIG_ENDIAN);
 
-        int checksumValue = segmentSize + sourcePort + destinationPort + windowNum;
+        int checksumValue = segmentSize + sourcePort + destPort + windowNum;
 
         short checkShort = new Integer(checksumValue).shortValue();
         short inverse = (short) ~checkShort;
 
         byte[] checkSum = convertShortToByte(inverse, ByteOrder.BIG_ENDIAN);
 
-        System.arraycopy(checkSum, 0, header, 16, SHORT_BYTE_SIZE);
+        System.arraycopy(checkSum, 0, message, 16, SHORT_BYTE_SIZE);
     }
 
     private short convertByteArrayToShort(byte[] byteArray, ByteOrder order) {
