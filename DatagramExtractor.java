@@ -12,7 +12,7 @@ public class DatagramExtractor {
     private ArrayList<byte[]> messages;
     private ArrayList<byte[]> data;
 
-    public PacketExtractor() {
+    public DatagramExtractor() {
         this.headers = null;
         this.messages = null;
         this.data = null;
