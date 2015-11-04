@@ -107,6 +107,12 @@ public class TCPsender {
 			datagrams = datagramGenerator.generateDatagram(sender.getSendPort(), sender.getReceiverPort(),
 				sender.getSequenceRange(), sender.getSendFileName());
 
+			// Start the sending thread
+			GBNProtocol sendingThread = new GBNProtocol(sender);
+			sendingThread.start();
+
+			Socket listeningSocket = null;
+			String response = "";
 			
 
 
