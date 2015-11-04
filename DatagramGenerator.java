@@ -108,7 +108,6 @@ public class DatagramGenerator {
         System.arraycopy(ackNumber, 0, header, 8, INT_BYTE_SIZE);
         header[12] = dataOffsetReservedNS;
         System.arraycopy(windowSize, 0, header, 14, SHORT_BYTE_SIZE);
-        calculateCheckSum(header, source, destination, windowSize, segment);
         System.arraycopy(urgentPointer, 0, header, 18, SHORT_BYTE_SIZE);
     }
 
@@ -117,16 +116,16 @@ public class DatagramGenerator {
         for (int i = 0; i < this.headers.size(); i++) {
             byte[] header = this.headers.get(i);
             byte[] data = this.segments.get(i);
-            byte[] tcpMessage = new byte[header.length + data.length];
+            byte[] tcpScrap = new byte[header.length + data.length];
             System.arraycopy(header, 0, tcpTemp, 0, header.length);
             System.arraycopy(data, 0, tcpTemp, header.length, data.length);
 
-            calculateCheckSum(tcpMessage);
+            byte[] tcpMessage = calculateCheckSum(tcpScrap);
             this.datagrams.add(tcpMessage);
         }
     }
 
-    private void calculateCheckSum(byte[] message) {
+    private byte[] calculateCheckSum(byte[] message) {
      	byte[] sourceNumber = new byte[SHORT_BYTE_SIZE];
         byte[] destNumber = new byte[SHORT_BYTE_SIZE];
         byte[] windowSize = new byte[SHORT_BYTE_SIZE];
@@ -148,6 +147,7 @@ public class DatagramGenerator {
         byte[] checkSum = convertShortToByte(inverse, ByteOrder.BIG_ENDIAN);
 
         System.arraycopy(checkSum, 0, message, 16, SHORT_BYTE_SIZE);
+        return message;
     }
 
     private short convertByteArrayToShort(byte[] byteArray, ByteOrder order) {
