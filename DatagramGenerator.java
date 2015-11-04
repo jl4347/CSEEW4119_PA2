@@ -117,8 +117,8 @@ public class DatagramGenerator {
             byte[] header = this.headers.get(i);
             byte[] data = this.segments.get(i);
             byte[] tcpScrap = new byte[header.length + data.length];
-            System.arraycopy(header, 0, tcpTemp, 0, header.length);
-            System.arraycopy(data, 0, tcpTemp, header.length, data.length);
+            System.arraycopy(header, 0, tcpScrap, 0, header.length);
+            System.arraycopy(data, 0, tcpScrap, header.length, data.length);
 
             byte[] tcpMessage = calculateCheckSum(tcpScrap);
             this.datagrams.add(tcpMessage);
