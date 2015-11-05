@@ -45,6 +45,7 @@ public class TCPreceiver {
             receiver.setUp(args);
             DatagramExtractor extractor = new DatagramExtractor();
             writer.setUp(receiver.getLogFilename());
+            BufferedWriter socketWriter = null;
 
             while (true) {
 
@@ -67,8 +68,7 @@ public class TCPreceiver {
 
                 byte[] correctSegment = new byte[originalSize];
                 try {
-                    System.arraycopy(incomingSegment, 0, correctSegment, 0,
-                            originalSize);
+                    System.arraycopy(incomingSegment, 0, correctSegment, 0, originalSize);
                 } catch (ArrayIndexOutOfBoundsException e) {
                     continue;
                 }
@@ -80,20 +80,22 @@ public class TCPreceiver {
                 int ackNum = extractor.extractAckNumberFromHeader(correctSegment);
                 byte flag = extractor.extractFlagsFromHeader(correctSegment);
                 short windowSize = extractor.extractWindowSizeFromHeader(correctSegment);
-                receiver.setSequenceRange((int)windowSize * 2);
 
                 // Write to log file.
                 writer.writeToLog(false, sourceAddress, destinationAddress, 
                     seqNum, ackNum, flag, 0, "Received");
 
                 if (receiver.sequenceNumbersMatch(seqNum) && extractor.checkCheckSum(correctSegment)) {
+                    receiver.setSequenceRange((int)windowSize * 2);
                     byte[] data = extractor.extractDataFromMessage(correctSegment);
                     receiver.writeByteArrayToFile(data);
 
                     int updatedSeq = receiver.updateSeqNumber();
                     receiver.setSequenceNumber(updatedSeq);
-                    receiver.setAckSocket(receiver.getSenderAddress(), receiver.getSenderPort());
-                    BufferedWriter socketWriter = receiver.createSockOut();
+                    System.out.println("next expected seqNum: " + receiver.getSequenceNumber());
+                    if (receiver.getAckSocket() == null)
+                        receiver.setAckSocket(receiver.getSenderAddress(), receiver.getSenderPort());
+                        socketWriter = receiver.createSockOut();
                     receiver.writeResponse(updatedSeq, ackNum, flag, socketWriter);
 
                     receiver.writeSentLog(updatedSeq, ackNum, flag, writer);
@@ -155,8 +157,9 @@ public class TCPreceiver {
 
     private void writeResponse(int seqNum, int ackNum, byte flag,
             BufferedWriter socketWriter) throws IOException {
-        socketWriter.write("SEQ " + seqNum + " ACK " + ackNum + " FLAG " + flag
-                + "\n");
+        String response = "SEQ " + seqNum + " ACK " + ackNum + " FLAG " + flag + "\n";
+        System.out.println(response);
+        socketWriter.write(response);
         socketWriter.flush();
     }
 

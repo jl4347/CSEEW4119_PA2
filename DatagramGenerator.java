@@ -73,7 +73,8 @@ public class DatagramGenerator {
 
     	byte[] source = convertShortToByte(sourcePort, ByteOrder.BIG_ENDIAN);
     	byte[] destination = convertShortToByte(destinationPort, ByteOrder.BIG_ENDIAN);
-    	byte[] windowSize = convertIntToByte(this.sequenceRange / 2, ByteOrder.BIG_ENDIAN);
+    	byte[] windowSize = convertShortToByte((short)(this.sequenceRange / 2), ByteOrder.BIG_ENDIAN);
+    	System.out.println("windowSize: " + (this.sequenceRange / 2));
     	for (int i = 0; i < this.segments.size(); i++) {
     		byte[] header = new byte[HEADER_BYTE_SIZE];
     		byte[] seqNumber = convertIntToByte(this.seqNum, ByteOrder.BIG_ENDIAN);
@@ -82,9 +83,12 @@ public class DatagramGenerator {
             	header[13] = ackFinFlag;
            	else header[13] = ackFlag;
 
+           	header = setTCPheader(header, source, destination, seqNumber, ackNumber, windowSize);
            	this.headers.add(header);
            	this.seqNum = (this.seqNum + 1) % this.sequenceRange;
+           	//System.out.println("seqNum: " + this.seqNum);
            	this.ackNum = (this.ackNum + 1) % this.sequenceRange;
+           	//System.out.println("ackNum: " + this.ackNum);
     	}
     }
 
@@ -100,8 +104,8 @@ public class DatagramGenerator {
         return buffer.putInt(value).array();
     }
 
-    private void setTCPheader(byte[] header, byte[] source, byte[] destination, 
-    	byte[] seqNumber, byte[] ackNumber, byte[] windowSize, byte[] segment) {
+    private byte[] setTCPheader(byte[] header, byte[] source, byte[] destination, 
+    	byte[] seqNumber, byte[] ackNumber, byte[] windowSize) {
     	System.arraycopy(source, 0, header, 0, SHORT_BYTE_SIZE);
         System.arraycopy(destination, 0, header, 2, SHORT_BYTE_SIZE);
         System.arraycopy(seqNumber, 0, header, 4, INT_BYTE_SIZE);
@@ -109,6 +113,7 @@ public class DatagramGenerator {
         header[12] = dataOffsetReservedNS;
         System.arraycopy(windowSize, 0, header, 14, SHORT_BYTE_SIZE);
         System.arraycopy(urgentPointer, 0, header, 18, SHORT_BYTE_SIZE);
+        return header;
     }
 
     private void combineHeadersAndSegments() {

@@ -100,6 +100,7 @@ public class TCPsender {
 			setUpCounters();
 
 			// Instantiate the datagram generator
+			System.out.println("Start generating datagrams...");
 			DatagramGenerator datagramGenerator = new DatagramGenerator();
 			// Setup the log writer
 			writer.setUp(sender.getLogFileName());
@@ -115,9 +116,12 @@ public class TCPsender {
 			BufferedReader reader = sender.createSocketInput(listeningSocket);
 			String response = "";
 			while (sendBase < datagrams.size()) {
+				System.out.println("Waiting for response from receiver...");
 				response = reader.readLine().trim();
+				System.out.println("Response: " + response);
 				if (responseHasCorrectAck(response, sendBase)) {
 					sendBase++;
+					baseACK = true;
 					sender.writeReceivedMessage(listeningSocket, response, writer);
 				}
 			}
