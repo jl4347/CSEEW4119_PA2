@@ -6,6 +6,7 @@ import java.util.Date;
 
 public class TCPsender {
 	private static ArrayList<byte[]> datagrams;
+	private static ArrayList<Long> datagramRecord;
 	private short ackPort;
 	private short receiverPort;
 	private String sendFileName;
@@ -16,6 +17,7 @@ public class TCPsender {
 	private InetAddress receiverAddress;
 	private static long timeout;
 	private static long estimatedRTT;
+	private static long devRTT;
 	private static int sequenceRange;
 	private static int totalBytesSent;
 	private static int totalSegmentsSent;
@@ -30,6 +32,8 @@ public class TCPsender {
     private final static int ACK_NUM_INDEX = 8;
     private final static int FLAG_INDEX = 13;
     private final static int INT_BYTE_SIZE = 4;
+    private final static double ALPHA = 0.125;
+    private final static double BETA = 0.25;
 
 	public static void main(String[] args) {
 		if (args.length != 5 && args.length != 6)
@@ -63,6 +67,9 @@ public class TCPsender {
 
 				while (nextSequence < sendBase + windowSize && nextSequence < datagrams.size()) {
 					byte[] datagram = datagrams.get(nextSequence);
+					if (nextSequence >= datagramRecord.size())
+						datagramRecord.add(System.currentTimeMillis());
+
 					DatagramPacket packet = new DatagramPacket(datagram, datagram.length, 
 						sender.getReceiverAddress(), sender.getReceiverPort());
 					// send packet
@@ -123,6 +130,7 @@ public class TCPsender {
 					sendBase++;
 					baseACK = true;
 					sender.writeReceivedMessage(listeningSocket, response, writer);
+					sender.calculateTimeout(datagramRecord.get(sendBase-1), devRTT);
 				}
 			}
 			listeningSocket.close();
@@ -137,6 +145,18 @@ public class TCPsender {
         sender.cleanUpIO(writer, sender);
         System.exit(1);
 	}
+
+	private void calculateTimeout(long firstSendTime, long devRTT) {
+        long endTime = System.currentTimeMillis();
+        long sampleRTT = endTime - firstSendTime;
+        estimatedRTT = new Double((1 - ALPHA) * estimatedRTT 
+        	+ ALPHA * sampleRTT).longValue();
+
+        devRTT = new Double((1 - BETA) * devRTT + BETA
+                * Math.abs(sampleRTT - estimatedRTT)).longValue();
+        
+        timeout = new Double(estimatedRTT + 4 * devRTT).longValue();
+    }
 
 	private BufferedReader createSocketInput(Socket socket) throws IOException {
         return new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -207,6 +227,7 @@ public class TCPsender {
 		this.receiverAddress = null;
 		this.timeout = 0;
 		this.estimatedRTT = 0;
+		this.devRTT = 0;
 
 		this.sendBase = 0;
 		this.nextSequence = 0;
@@ -225,6 +246,8 @@ public class TCPsender {
 		this.setReceiverAddress(InetAddress.getByName(args[1]));
 		this.setTimeOut(1000);
 		this.estimatedRTT = 1000;
+
+		datagramRecord = new ArrayList<Long>();
 	}
 
 	private static void setUpCounters() {
