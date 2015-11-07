@@ -143,8 +143,8 @@ public class DatagramGenerator {
         short sourcePort = convertByteArrayToShort(sourceNumber, ByteOrder.BIG_ENDIAN);
         short destPort = convertByteArrayToShort(destNumber, ByteOrder.BIG_ENDIAN);
         short windowNum = convertByteArrayToShort(windowSize, ByteOrder.BIG_ENDIAN);
-
-        int checksumValue = segmentSize + sourcePort + destPort + windowNum;
+        short urgent = convertByteArrayToShort(urgentPointer, ByteOrder.BIG_ENDIAN);
+        int checksumValue = segmentSize + sourcePort + destPort + windowNum + urgent;
 
         short checkShort = new Integer(checksumValue).shortValue();
         short inverse = (short) ~checkShort;

@@ -29,9 +29,10 @@ public class DatagramExtractor {
         short destPort = extractDestPortFromHeader(segment);
         short windowSize = extractWindowSizeFromHeader(segment);
         short checksumValue = extractChecksumFromHeader(segment);
+        short urgentSize = extractUrgentFromHeader(segment);
         
         short inverseChecksum = (short) ~checksumValue;
-        int originSize = inverseChecksum - (sourcePort + destPort + windowSize + HEADER_SIZE);
+        int originSize = inverseChecksum - (sourcePort + destPort + windowSize + urgentSize + HEADER_SIZE);
         return originSize;
     }
 
@@ -96,8 +97,9 @@ public class DatagramExtractor {
         short destPort = extractDestPortFromHeader(segment);
         short windowNum = extractWindowSizeFromHeader(segment);
         short checkNum = extractChecksumFromHeader(segment);
+        short urgent = extractUrgentFromHeader(segment);
 
-        int checksumValue = segmentSize + sourcePort + destPort + windowNum;
+        int checksumValue = segmentSize + sourcePort + destPort + windowNum + urgent;
         short inverseCheckSum = (short) ~checksumValue;
         return inverseCheckSum == checkNum ? true : false;
     }
