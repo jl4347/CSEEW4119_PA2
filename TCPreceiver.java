@@ -1,9 +1,14 @@
 import java.io.*;
 import java.net.*;
 
+/*
+ * Receive the list of the datagrams for the specified file
+ * Designed to deal with packet loss, corruption, duplication
+ * and reordering.
+ */
 public class TCPreceiver {
-    private short listeningPort;
-    private short senderPort;
+    private int listeningPort;
+    private int senderPort;
     private InetAddress senderAddress;
     private String logFilename;
     private String receivedFilename;
@@ -183,9 +188,9 @@ public class TCPreceiver {
     public void setUp(String[] args) throws UnknownHostException,
             SocketException, IOException {
         this.setReceivedFilename(args[0]);
-        this.setListeningPort(Short.parseShort(args[1]));
+        this.setListeningPort(Integer.parseInt(args[1]));
         this.setSenderAddress(InetAddress.getByName(args[2]));
-        this.setSenderPort(Short.parseShort(args[3]));
+        this.setSenderPort(Integer.parseInt(args[3]));
         this.setLogFilename(args[4]);
         this.setListenSocket(this.getListeningPort());
         this.setAckNumber(0);
@@ -193,11 +198,11 @@ public class TCPreceiver {
         this.setSequenceRange(2);
     }
 
-    public void setListeningPort(short listeningPort) {
+    public void setListeningPort(int listeningPort) {
         this.listeningPort = listeningPort;
     }
 
-    public void setSenderPort(short senderPort) {
+    public void setSenderPort(int senderPort) {
         this.senderPort = senderPort;
     }
 
@@ -213,11 +218,11 @@ public class TCPreceiver {
         this.senderAddress = senderAddress;
     }
 
-    public void setListenSocket(short listenPortNumber) throws SocketException {
+    public void setListenSocket(int listenPortNumber) throws SocketException {
         this.listenSocket = new DatagramSocket(listenPortNumber);
     }
 
-    public void setAckSocket(InetAddress senderAddress, short senderPortNumber)
+    public void setAckSocket(InetAddress senderAddress, int senderPortNumber)
             throws IOException {
         this.ackSocket = new Socket(senderAddress, senderPortNumber);
     }
@@ -234,11 +239,11 @@ public class TCPreceiver {
         this.sequenceRange = sequenceRange;
     }
 
-    public short getListeningPort() {
+    public int getListeningPort() {
         return this.listeningPort;
     }
 
-    public short getSenderPort() {
+    public int getSenderPort() {
         return this.senderPort;
     }
 

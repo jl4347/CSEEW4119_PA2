@@ -2,6 +2,9 @@ import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+/*
+ * Write log message to the specified log file
+ */
 public class LogWriter {
 	private String filename;
 	private PrintWriter fileWriter;
@@ -18,8 +21,7 @@ public class LogWriter {
         if (filename.equals("stdout")) {
             fileWriter = new PrintWriter(System.out, true);
         } else {
-            fileWriter = new PrintWriter(new BufferedWriter(new FileWriter(logFile, true)),
-                    true);
+            fileWriter = new PrintWriter(new BufferedWriter(new FileWriter(logFile, true)), true);
         }
     }
 
@@ -61,8 +63,7 @@ public class LogWriter {
             String destination, int seqNum, int ackNum, int ack, int fin) {
         return type + ": " + date + ", Source: " + source + ", Destination: "
                 + destination + ", Sequence Number: " + seqNum
-                + ", Ack Number: " + ackNum
-                + ", Ack: " + ack + ", Fin: " + fin;
+                + ", Ack Number: " + ackNum + ", Ack: " + ack + ", Fin: " + fin;
     }
 
     public void close() {

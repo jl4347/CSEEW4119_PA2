@@ -3,6 +3,11 @@ import java.net.*;
 import java.nio.*;
 import java.util.ArrayList;
 
+/*
+ * Extract information from the received datagram, 
+ * eg, header, flag, data...
+ * Used by TCP receiver only.
+ */
 public class DatagramExtractor {
     private final static int HEADER_SIZE = 20;
     private final static int INT_BYTE_SIZE = 4;

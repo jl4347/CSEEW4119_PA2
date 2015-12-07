@@ -2,6 +2,11 @@ import java.io.*;
 import java.nio.*;
 import java.util.ArrayList;
 
+/*
+ * Generate the datagrams from the specfied file for transmission 
+ * 
+ * Used by TCP sender only.
+ */
 public class DatagramGenerator {
 	private final static int SHORT_BYTE_SIZE = 2;
     private final static int INT_BYTE_SIZE = 4;
@@ -27,7 +32,7 @@ public class DatagramGenerator {
         this.ackNum = 0;
     }
 
-    public ArrayList<byte[]> generateDatagram(short sourcePort, short destinationPort, 
+    public ArrayList<byte[]> generateDatagram(int sourcePort, int destinationPort, 
     	int sequenceRange, String filename) throws IOException {
     	this.sequenceRange = sequenceRange;
     	byte[] fileBytes = convertFileToByte(filename);
@@ -62,17 +67,17 @@ public class DatagramGenerator {
     	return segments;
     }
 
-    private void generateTCPsegments(short sourcePort, short destinationPort) {
+    private void generateTCPsegments(int sourcePort, int destinationPort) {
     	generateTCPheaders(sourcePort, destinationPort);
     	combineHeadersAndSegments();
     }
 
-    private void generateTCPheaders(short sourcePort, short destinationPort) {
+    private void generateTCPheaders(int sourcePort, int destinationPort) {
     	this.headers = new ArrayList<byte[]>();
     	int lastHeader = this.segments.size() - 1;
 
-    	byte[] source = convertShortToByte(sourcePort, ByteOrder.BIG_ENDIAN);
-    	byte[] destination = convertShortToByte(destinationPort, ByteOrder.BIG_ENDIAN);
+    	byte[] source = convertIntToByte(sourcePort, ByteOrder.BIG_ENDIAN);
+    	byte[] destination = convertIntToByte(destinationPort, ByteOrder.BIG_ENDIAN);
     	byte[] windowSize = convertShortToByte((short)(this.sequenceRange / 2), ByteOrder.BIG_ENDIAN);
     	System.out.println("windowSize: " + (this.sequenceRange / 2));
     	for (int i = 0; i < this.segments.size(); i++) {

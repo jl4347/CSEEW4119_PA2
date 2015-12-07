@@ -4,11 +4,17 @@ import java.util.ArrayList;
 import java.nio.ByteBuffer;
 import java.util.Date;
 
+/*
+ * Send the list of the datagrams to the specified receiver 
+ * Designed to deal with packet loss, corruption, duplication
+ * and reordering.
+ * Using the GBN protocol to provide a pipeline implementation
+ */
 public class TCPsender {
 	private static ArrayList<byte[]> datagrams;
 	private static ArrayList<Long> datagramRecord;
-	private short ackPort;
-	private short receiverPort;
+	private int ackPort;
+	private int receiverPort;
 	private String sendFileName;
 	private String logFileName;
 	private static int windowSize;
@@ -235,8 +241,8 @@ public class TCPsender {
 	}
 
 	private void setUp(String[] args) throws UnknownHostException, IOException {
-		this.setAckPort(Short.parseShort(args[3]));
-		this.setReceiverPort(Short.parseShort(args[2]));
+		this.setAckPort(Integer.parseInt(args[3]));
+		this.setReceiverPort(Integer.parseInt(args[2]));
 		this.setSendFileName(args[0]);
 		this.setLogFileName(args[4]);
 		if (args.length == 6) this.setWindowSize(Integer.parseInt(args[5]));
@@ -262,11 +268,11 @@ public class TCPsender {
     }
 
 	// Setters
-	public void setAckPort(short ackPort) {
+	public void setAckPort(int ackPort) {
 		this.ackPort = ackPort;
 	}
 
-	public void setReceiverPort(short receiverPort) {
+	public void setReceiverPort(int receiverPort) {
 		this.receiverPort = receiverPort;
 	}
 
@@ -290,7 +296,7 @@ public class TCPsender {
 		this.sendSocket = new DatagramSocket();
 	}
 
-	public void setAckSocket(short ackPort) throws IOException {
+	public void setAckSocket(int ackPort) throws IOException {
 		this.ackSocket = new ServerSocket(ackPort);
 	}
 
@@ -303,11 +309,11 @@ public class TCPsender {
 	}
 
 	// Getters
-	public short getAckPort() {
+	public int getAckPort() {
 		return this.ackPort;
 	}
 
-	public short getReceiverPort() {
+	public int getReceiverPort() {
 		return this.receiverPort;
 	}
 
@@ -339,10 +345,9 @@ public class TCPsender {
 		return this.receiverAddress;
 	}
 
-	public short getSendPort() {
+	public int getSendPort() {
         Integer sendPort = this.getSendSocket().getLocalPort();
-        short shortNumber = sendPort.shortValue();
-        return shortNumber;
+        return sendPort.intValue();
     }
 
 	public long getTimeOut() {
